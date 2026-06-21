@@ -1,0 +1,103 @@
+/* AppSidebar — ported 1:1 from teplodar AppSidebar.vue <style scoped>. */
+.sidebar {
+  background: var(--bg-panel);
+  border-right: 1px solid var(--border-1);
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-4);
+  border-bottom: 1px solid var(--border-1);
+  flex: none;
+}
+
+.brand-mark {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--rad-md);
+  background: linear-gradient(135deg, #ffe2c2 0%, #ffc78a 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+}
+
+.brand-emoji {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.brand-name {
+  font-weight: var(--fw-bold);
+  font-size: var(--fs-15);
+  letter-spacing: var(--ls-tight);
+  color: var(--fg-1);
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.brand-version {
+  font-size: 10px;
+  font-weight: var(--fw-medium);
+  color: var(--fg-3);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.nav {
+  flex: 1;
+  padding: var(--sp-3) var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  width: 100%;
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--rad-md);
+  border: 0;
+  background: transparent;
+  font: inherit;
+  font-size: var(--fs-13);
+  font-weight: var(--fw-medium);
+  color: var(--fg-1);
+  cursor: pointer;
+  text-align: left;
+  text-decoration: none;
+  transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.nav-item:hover {
+  background: var(--bg-hover);
+}
+
+.nav-item.active {
+  background: var(--bg-elevated);
+  color: var(--accent);
+  box-shadow: var(--shadow-1);
+}
+
+.nav-icon {
+  flex: none;
+  font-size: 16px;
+  width: 18px;
+  text-align: center;
+}
+
+.nav-label {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

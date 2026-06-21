@@ -1,0 +1,40 @@
+# Зависимости / окружения
+node_modules/
+.venv/
+venv/
+
+# Билды
+dist/
+frontend/dist/
+*.tsbuildinfo
+
+# Python-кэши
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+
+# База знаний (большие артефакты — переносятся отдельно, не в git)
+**/base/*.db
+**/base/*.db-*
+**/base/*.npy
+**/base/*.pkl
+**/base/pdfs/*
+!**/base/.gitkeep
+
+# Shared Claude-токен: data/ на проде — симлинк на ArkadiyJarvis/data
+/data
+**/data/.claude_token.json
+
+# Секреты и окружение
+.env
+backend/.env
+
+# Логи
+*.log
+logs/
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/

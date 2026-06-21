@@ -1,0 +1,34 @@
+# Виртуальные окружения (тяжёлые, пересобираются в образе)
+**/.venv/
+**/venv/
+
+# Фронтовый билд и зависимости (пересобираются в stage 1)
+frontend/dist/
+frontend/node_modules/
+
+# Монтируются как volume в рантайме — никогда не пекём в образ.
+# data/ на проде — симлинк (-> ArkadiyJarvis/data), иначе COPY затащит битый симлинк.
+data/
+base/
+
+# Python-кэши
+**/__pycache__/
+**/*.py[cod]
+**/*.egg-info/
+**/.pytest_cache/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+
+# Секреты
+.env
+
+# Логи
+**/*.log
+**/logs/
+
+# Прочее
+.git/
+docs/

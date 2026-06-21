@@ -1,0 +1,215 @@
+/* ChatMessage — ported 1:1 from teplodar ChatMessage.vue <style scoped>. */
+.msg {
+  display: flex;
+  margin-bottom: var(--sp-5);
+}
+.msg-user {
+  justify-content: flex-end;
+}
+.msg-assistant {
+  justify-content: flex-start;
+}
+
+.bubble-user {
+  background: var(--accent-soft);
+  color: var(--fg-1);
+  padding: var(--sp-3) var(--sp-4);
+  border-radius: var(--rad-xl);
+  border-bottom-right-radius: var(--rad-sm);
+  max-width: 80%;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  font-size: var(--fs-15);
+  line-height: var(--lh-normal);
+}
+
+.assistant-block {
+  max-width: 100%;
+  width: 100%;
+}
+
+.answer {
+  font-size: var(--fs-15);
+  line-height: var(--lh-relaxed);
+  color: var(--fg-1);
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}
+.answer b {
+  font-weight: var(--fw-semibold);
+}
+.answer code {
+  font-family: var(--font-mono);
+  font-size: 0.9em;
+  background: var(--ark-gray-100);
+  padding: 1px 5px;
+  border-radius: var(--rad-sm);
+}
+.answer a {
+  color: var(--fg-link);
+  text-decoration: none;
+}
+.answer a:hover {
+  text-decoration: underline;
+}
+
+/* typing dots */
+.typing {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  color: var(--fg-3);
+  font-size: var(--fs-14);
+}
+.dots {
+  display: inline-flex;
+  gap: 4px;
+}
+.dots span {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg-3);
+  animation: blink 1.4s infinite both;
+}
+.dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+@keyframes blink {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+.phase {
+  font-style: italic;
+}
+
+/* meta chip */
+.meta-chip {
+  margin-top: var(--sp-3);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-11);
+  color: var(--fg-3);
+  font-variant-numeric: tabular-nums;
+}
+.meta-type {
+  background: var(--bg-panel-2);
+  color: var(--fg-2);
+  padding: 1px 7px;
+  border-radius: var(--rad-sm);
+  font-weight: var(--fw-semibold);
+}
+.meta-score {
+  font-weight: var(--fw-semibold);
+}
+.score-green {
+  color: var(--ark-green-600);
+}
+.score-yellow {
+  color: var(--ark-yellow-600);
+}
+.score-red {
+  color: var(--ark-red-600);
+}
+
+/* feedback */
+.fb-row {
+  margin-top: var(--sp-2);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 28px;
+}
+.fb-btn {
+  background: transparent;
+  border: 1px solid var(--border-1);
+  border-radius: var(--rad-md);
+  padding: 2px 8px;
+  font-size: 14px;
+  cursor: pointer;
+  line-height: 1.4;
+  transition: background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+.fb-btn:hover {
+  background: var(--bg-hover);
+}
+.fb-btn.active {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+}
+.fb-thanks {
+  font-size: var(--fs-12);
+  color: var(--fg-3);
+}
+
+/* note box */
+.note-box {
+  margin-top: var(--sp-3);
+  background: var(--bg-panel-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--rad-lg);
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  max-width: 520px;
+}
+.note-label {
+  font-size: var(--fs-12);
+  color: var(--fg-2);
+  font-weight: var(--fw-medium);
+}
+.note-box textarea {
+  resize: vertical;
+  border: 1px solid var(--border-1);
+  border-radius: var(--rad-md);
+  padding: 8px 10px;
+  font: inherit;
+  font-size: var(--fs-14);
+  color: var(--fg-1);
+  background: var(--bg-elevated);
+}
+.note-box textarea:focus {
+  outline: none;
+  border-color: var(--border-focus);
+  box-shadow: var(--shadow-focus);
+}
+.note-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
+}
+.btn {
+  padding: 6px 14px;
+  border: 1px solid var(--border-1);
+  border-radius: var(--rad-md);
+  background: var(--bg-panel);
+  color: var(--fg-1);
+  font: inherit;
+  font-size: var(--fs-13);
+  cursor: pointer;
+}
+.btn-primary {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+.btn-secondary {
+  background: var(--bg-panel-2);
+}

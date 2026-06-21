@@ -1,0 +1,18 @@
+# Runtime dependencies for «Нейро-шеф Гурмикс» backend.
+
+# Core
+sqlalchemy>=2.0.0
+pydantic>=2.0.0
+pydantic-settings>=2.0.0
+python-dotenv>=1.0.0
+pyyaml>=6.0.0
+httpx>=0.24.0
+tenacity>=8.0.0
+
+# Web (FastAPI + SPA)
+fastapi>=0.100.0
+uvicorn[standard]>=0.20.0
+python-multipart>=0.0.5
+
+# Anthropic SDK (фаза 2 / опционально — Claude CLI работает через subprocess)
+anthropic>=0.30.0

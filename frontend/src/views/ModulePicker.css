@@ -1,0 +1,64 @@
+/* ModulePicker — full-height chat-layout screen with a card grid. */
+.picker {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-app);
+}
+
+.picker-header {
+  flex-shrink: 0;
+  height: 52px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--sp-5);
+  border-bottom: 1px solid var(--border-1);
+  background: var(--bg-panel);
+}
+.picker-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-16);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-tight);
+}
+.picker-emoji {
+  font-size: 18px;
+}
+
+.picker-scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+.picker-inner {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: var(--sp-8) var(--sp-4) var(--sp-10);
+}
+
+.picker-title {
+  margin: 0 0 var(--sp-2);
+  font-size: var(--fs-24);
+  font-weight: var(--fw-bold);
+  color: var(--fg-1);
+}
+.picker-sub {
+  margin: 0 0 var(--sp-6);
+  color: var(--fg-2);
+  font-size: var(--fs-14);
+}
+
+.picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+  gap: var(--sp-4);
+}
+
+@media (max-width: 760px) {
+  .picker-grid {
+    grid-template-columns: 1fr;
+  }
+}

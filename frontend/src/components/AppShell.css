@@ -1,0 +1,40 @@
+/* AppShell — ported 1:1 from teplodar AppShell.vue <style scoped>. */
+.main-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-app);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-3) var(--sp-6);
+  border-bottom: 1px solid var(--border-1);
+  background: var(--bg-panel);
+  height: 52px;
+  flex-shrink: 0;
+}
+
+.topbar-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-16);
+  font-weight: var(--fw-bold);
+  color: var(--fg-1);
+  letter-spacing: 0.01em;
+}
+
+.topbar-emoji {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.main-content {
+  background: var(--bg-app);
+  overflow-y: auto;
+  flex: 1;
+  min-height: 0;
+}

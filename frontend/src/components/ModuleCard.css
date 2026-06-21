@@ -1,0 +1,81 @@
+/* ModuleCard — light-CRM style from tokens. Accent circle, hover lift. */
+.module-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-4);
+  padding: var(--sp-5);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-1);
+  border-radius: var(--rad-lg);
+  box-shadow: var(--shadow-1);
+  cursor: pointer;
+  transition: box-shadow var(--dur-base) var(--ease-out),
+    border-color var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
+}
+
+.module-card:hover {
+  box-shadow: var(--shadow-2);
+  border-color: var(--border-strong);
+}
+
+.module-card:focus-visible {
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+.module-card.locked {
+  cursor: default;
+  opacity: 0.6;
+  box-shadow: var(--shadow-0);
+}
+
+.module-card.locked:hover {
+  box-shadow: var(--shadow-0);
+  border-color: var(--border-1);
+}
+
+.module-emoji {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--rad-full);
+  background: var(--accent-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.module-body {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+
+.module-title {
+  font-size: var(--fs-15);
+  font-weight: var(--fw-semibold);
+  color: var(--fg-1);
+  line-height: var(--lh-snug);
+}
+
+.module-short {
+  font-size: var(--fs-13);
+  color: var(--fg-2);
+  line-height: var(--lh-snug);
+}
+
+.module-badge {
+  position: absolute;
+  top: var(--sp-3);
+  right: var(--sp-3);
+  padding: 1px 8px;
+  border-radius: var(--rad-pill);
+  background: var(--status-new-bg);
+  color: var(--status-new-fg);
+  font-size: var(--fs-11);
+  font-weight: var(--fw-semibold);
+}
