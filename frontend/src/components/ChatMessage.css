@@ -32,8 +32,82 @@
   font-size: var(--fs-15);
   line-height: var(--lh-relaxed);
   color: var(--fg-1);
-  white-space: pre-wrap;
   word-wrap: break-word;
+}
+/* Markdown-блоки: компактные отступы без дефолтных 1em-дырок.
+   (white-space: pre-wrap убран — иначе переводы строк между тегами от marked
+   рендерятся как пустые строки и дают большие вертикальные провалы.) */
+.answer > :first-child {
+  margin-top: 0;
+}
+.answer > :last-child {
+  margin-bottom: 0;
+}
+.answer p {
+  margin: 0 0 var(--sp-2);
+}
+.answer ul,
+.answer ol {
+  margin: var(--sp-2) 0;
+  padding-left: 1.4em;
+}
+.answer li {
+  margin: 2px 0;
+}
+.answer li > ul,
+.answer li > ol {
+  margin: 2px 0;
+}
+.answer h1,
+.answer h2,
+.answer h3,
+.answer h4 {
+  margin: var(--sp-3) 0 var(--sp-2);
+  font-weight: var(--fw-semibold);
+  line-height: 1.3;
+}
+.answer h1 {
+  font-size: var(--fs-18);
+}
+.answer h2 {
+  font-size: var(--fs-16);
+}
+.answer h3,
+.answer h4 {
+  font-size: var(--fs-15);
+}
+.answer hr {
+  border: 0;
+  border-top: 1px solid var(--border-2);
+  margin: var(--sp-3) 0;
+}
+.answer pre {
+  background: var(--ark-gray-100);
+  padding: var(--sp-3);
+  border-radius: var(--rad-md);
+  overflow-x: auto;
+  margin: var(--sp-2) 0;
+}
+.answer pre code {
+  background: none;
+  padding: 0;
+}
+.answer blockquote {
+  margin: var(--sp-2) 0;
+  padding-left: var(--sp-3);
+  border-left: 3px solid var(--border-1);
+  color: var(--fg-2);
+}
+.answer table {
+  border-collapse: collapse;
+  margin: var(--sp-2) 0;
+  font-size: var(--fs-13);
+}
+.answer th,
+.answer td {
+  border: 1px solid var(--border-2);
+  padding: 4px 8px;
+  text-align: left;
 }
 .answer b {
   font-weight: var(--fw-semibold);
