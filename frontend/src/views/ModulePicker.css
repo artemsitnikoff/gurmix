@@ -27,6 +27,13 @@
 .picker-emoji {
   font-size: 18px;
 }
+.picker-version {
+  margin-left: auto;
+  font-size: var(--fs-12);
+  font-weight: var(--fw-regular, 400);
+  color: var(--fg-3, var(--fg-2));
+  font-variant-numeric: tabular-nums;
+}
 
 .picker-scroll {
   flex: 1;

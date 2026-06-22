@@ -44,7 +44,21 @@ cd frontend && npm install && npm run dev
 ## Деплой
 `docker compose up -d --build`. Один сервис `web` на **`APP_PORT` (дефолт 8420,
 нестандартный)**. `data/` на проде — симлинк на `/var/www/ArkadiyJarvis/data`
-(общий Claude-токен). Полный чеклист — **`DEPLOY.md`**.
+(общий Claude-токен). **Релиз = `git push origin main`** → GitHub Actions
+(`.github/workflows/deploy.yml`) по SSH пересобирает `web` на VPS (секреты
+`SSH_HOST`/`SSH_USER`/`SSH_PRIVATE_KEY`/`DEPLOY_PATH`). Полный чеклист — **`DEPLOY.md`**.
+
+## Версионность
+Единый источник истины — файл **`VERSION`** в корне (semver `MAJOR.MINOR.PATCH`).
+Git-хук **`.githooks/pre-commit`** авто-бампает PATCH на каждом коммите и
+`git add`-ит `VERSION`; **`.githooks/prepare-commit-msg`** ставит префикс `vX.Y.Z `
+в сообщение коммита (история git = ченджлог, как в glafira). Включить один раз:
+`sh scripts/setup-hooks.sh` (ставит `core.hooksPath=.githooks`). Пропустить бамп —
+`GURMIX_NO_BUMP=1 git commit …`. Версию читают: фронт — на сборке через
+`vite define` → `src/version.ts` (`APP_VERSION`; виден в шапке лендинга и сайдбаре
+админки), бэк — `app/core/version.py` в рантайме (`/health`, `GET /api/v1/version`,
+версия в `/docs`). В Docker `VERSION` копируется в образ (stage 1 `/VERSION` для
+vite, stage 2 `/app/VERSION` для бэка).
 
 ## Структура
 ```

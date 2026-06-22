@@ -66,7 +66,9 @@ docs/CONTRACT.md
   Так как Claude CLI не стримит токены — шлём события **фаз**, затем один `done`:
   - `{ "type": "phase", "phase": "intent" | "retrieval" | "answer" }`
   - `{ "type": "done", "answer_html": string, "log_id": number|null, "meta": {...},
-       "quota": QuotaState }`
+       "quota": QuotaState }` — `answer_html` несёт **Markdown-исходник** ответа
+    модели (ключ исторический); фронт рендерит его в HTML и санитизирует
+    (`marked` GFM + `DOMPurify`) перед вставкой.
   - `{ "type": "error", "message": string }`
   - `{ "type": "limit", "message": string, "quota": QuotaState }` — лимит исчерпан
     (HTTP всё равно 200, фронт показывает баннер «лимит исчерпан»).
@@ -107,10 +109,15 @@ OAuth `data/.claude_token.json`). `core/config.py`: `claude_model=claude-opus-4-
 `claude_intent_model=claude-opus-4-8` (коммент: Haiku=`claude-haiku-4-5` быстрее),
 `claude_cli_max_concurrent=4`, slots dir `/tmp/gurmix_claude_slots`.
 
-В «базе» активные модули (6–8) отвечают режимом `llm`: системный промпт модуля
-(`Module.full_system_prompt`) + история + вопрос -> Claude CLI -> HTML-ответ.
-RAG-подмешивание корпуса — фаза 2 (порт `src/rag`). Модуль 8 (`db`) — отвечает из
-таблицы дистрибьюторов; если пусто — текст «оставьте заявку».
+В «базе» (демо) активные модули **6, 7, 8** отвечают режимом `llm` напрямую через
+Opus: системный промпт модуля (`Module.full_system_prompt`) + история + вопрос ->
+Claude CLI -> **Markdown**-ответ (бэк отдаёт его как есть в `answer_html`, фронт
+рендерит). У активных модулей `expert_mode=True` — вместо `GUARDRAIL` подставляется
+`EXPERT_PREAMBLE` (уверенный отраслевой эксперт на общих знаниях, без выдумки
+конкретики Гурмикс: артикулы/цены/контакты). RAG-подмешивание корпуса и жёсткий
+`GUARDRAIL` для locked-модулей 1–5 — фаза 2. Ветка `db` (`_answer_db` — ответ из
+таблицы дистрибьюторов, иначе «оставьте заявку») сохранена, но **дремлет**: модуль
+8 переведён в `llm` для демо и вернётся к `db`/RAG, когда подгрузят реальные данные.
 
 ## Дизайн (1-в-1, обязательно)
 Токены: `frontend/src/assets/tokens.css` (готов, не менять значения). Шрифты Inter
@@ -126,8 +133,9 @@ RAG-подмешивание корпуса — фаза 2 (порт `src/rag`).
   отправить, Shift+Enter — перенос), круглая синяя кнопка отправки, hint снизу.
   Стриминг — через `sendChatStream` (fetch + ReadableStream, парсинг SSE по `\n\n`).
 - `components/ChatMessage.vue` -> `ChatMessage.tsx`: рендер ответа `dangerouslySet
-  InnerHTML` через мини-санитайзер (allowlist `b,i,code,a,br` + linkify URL/тел.),
-  👍/👎 + инлайн-заметка на 👎, meta-чип со score/таймингами.
+  InnerHTML` через `renderAnswer` (`marked` GFM + `DOMPurify` с узким allowlist:
+  заголовки, списки, таблицы, `code/pre`, ссылки с `target/rel`), 👍/👎 +
+  инлайн-заметка на 👎, meta-чип со score/таймингами.
 - `components/AppSidebar.vue` -> `AppSidebar.tsx`: бренд «Нейро-шеф Гурмикс» 👨‍🍳,
   nav для админки (Dashboard, Документы, RAG Чанки, Модули, Дистрибьюторы, Лимиты,
   Журнал). Активный пункт: белый фон + акцентный текст + тень.

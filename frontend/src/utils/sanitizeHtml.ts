@@ -1,45 +1,34 @@
-// Minimal sanitizer for bot answers.
+// Рендер ответа бота: Markdown → безопасный HTML.
 //
-// Answers arrive as a constrained subset of HTML produced by the backend
-// (<b>, <i>, <code>, plain URLs, newlines). We escape everything, then
-// re-enable only that allowlist and linkify URLs / phone numbers. No
-// external dependency — the output is our own LLM's narrow tag set.
+// Модель (Opus) возвращает Markdown. Бэкенд проксирует его как есть в поле
+// answer_html; здесь мы превращаем Markdown в HTML (marked, GFM) и санитизируем
+// (DOMPurify) — это граница безопасности перед dangerouslySetInnerHTML.
 
-const ALLOWED = ['b', 'strong', 'i', 'em', 'code', 'br']
+import { marked } from 'marked'
+import DOMPurify from 'dompurify'
 
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-}
+marked.setOptions({ gfm: true, breaks: true })
 
-function restoreAllowedTags(s: string): string {
-  for (const tag of ALLOWED) {
-    s = s
-      .replace(new RegExp(`&lt;${tag}&gt;`, 'gi'), `<${tag}>`)
-      .replace(new RegExp(`&lt;/${tag}&gt;`, 'gi'), `</${tag}>`)
-      .replace(new RegExp(`&lt;${tag}\\s*/&gt;`, 'gi'), `<${tag}>`)
+// Узкий allowlist под то, что генерит Markdown-ответ.
+const ALLOWED_TAGS = [
+  'p', 'br', 'hr', 'strong', 'em', 'b', 'i', 'del', 's', 'code', 'pre',
+  'blockquote', 'ul', 'ol', 'li',
+  'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+  'a', 'table', 'thead', 'tbody', 'tr', 'th', 'td',
+]
+const ALLOWED_ATTR = ['href', 'title', 'target', 'rel']
+
+// Внешние ссылки — всегда в новой вкладке и без доступа к window.opener.
+DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+  if (node.tagName === 'A') {
+    node.setAttribute('target', '_blank')
+    node.setAttribute('rel', 'noopener noreferrer')
   }
-  return s
-}
+})
 
-// URL up to the next space or tag boundary, minus trailing punctuation.
-const URL_RE = /(https?:\/\/[^\s<]+[^\s<.,;:!?)\]])/gi
-
-// RU phone like 8 800 775-03-07 / +7 (999) 303-09-27 — link to tel:.
-const PHONE_RE = /(\+?[78][\s ]?(?:\(?\d{3,4}\)?[\s ]?)\d{2,3}[-\s ]?\d{2}[-\s ]?\d{2})/g
-
-function linkify(s: string): string {
-  s = s.replace(
-    URL_RE,
-    (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`,
-  )
-  s = s.replace(PHONE_RE, (ph) => `<a href="tel:${ph.replace(/[\s ()-]/g, '')}">${ph}</a>`)
-  return s
-}
-
-export function sanitizeAnswer(html: string): string {
-  if (!html) return ''
-  let out = escapeHtml(html)
-  out = restoreAllowedTags(out)
-  out = linkify(out)
-  return out
+/** Markdown-текст ответа → отсанитизированный HTML для dangerouslySetInnerHTML. */
+export function renderAnswer(md: string): string {
+  if (!md) return ''
+  const rawHtml = marked.parse(md, { async: false }) as string
+  return DOMPurify.sanitize(rawHtml, { ALLOWED_TAGS, ALLOWED_ATTR })
 }

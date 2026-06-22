@@ -30,6 +30,7 @@ export type QuotaState = {
 // SSE event from POST /chat/stream.
 export type DoneEvent = {
   type: 'done'
+  // Markdown-исходник ответа модели; рендерить через renderAnswer (marked + DOMPurify).
   answer_html: string
   log_id: number | null
   meta: ChatMeta | null

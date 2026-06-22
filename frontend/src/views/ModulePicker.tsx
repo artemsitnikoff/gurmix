@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import { MODULES } from '@/modules'
 import { ModuleCard } from '@/components/ModuleCard'
+import { APP_VERSION } from '@/version'
 import './ModulePicker.css'
 
 /**
@@ -17,6 +18,7 @@ export default function ModulePicker() {
           <span className="picker-emoji">👨‍🍳</span>
           <span className="picker-brand-text">Нейро-шеф Гурмикс</span>
         </div>
+        <span className="picker-version">v{APP_VERSION}</span>
       </header>
 
       <div className="picker-scroll">

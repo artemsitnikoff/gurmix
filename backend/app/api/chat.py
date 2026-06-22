@@ -69,7 +69,7 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             )
 
         def worker():
-            # Fresh DB session per call (db-mode module reads distributors).
+            # Fresh DB session per call (used by the dormant db-mode branch).
             with SessionLocal() as session:
                 return answer_with_meta(
                     session, module_id, message,

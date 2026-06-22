@@ -1,0 +1,37 @@
+#!/bin/sh
+# Авто-бамп PATCH-версии при каждом коммите. Источник истины — файл VERSION в
+# корне репозитория. Пропуск во время merge/rebase и при GURMIX_NO_BUMP=1.
+
+if [ "$GURMIX_NO_BUMP" = "1" ]; then
+  exit 0
+fi
+
+repo_root=$(git rev-parse --show-toplevel) || exit 0
+
+# Не бампаем версию на merge/rebase-коммитах.
+if [ -f "$repo_root/.git/MERGE_HEAD" ] || \
+   [ -d "$repo_root/.git/rebase-merge" ] || \
+   [ -d "$repo_root/.git/rebase-apply" ]; then
+  exit 0
+fi
+
+vfile="$repo_root/VERSION"
+if [ ! -f "$vfile" ]; then
+  printf '0.1.0\n' > "$vfile"
+fi
+
+cur=$(tr -d ' \t\r\n' < "$vfile")
+major=$(printf '%s' "$cur" | cut -d. -f1)
+minor=$(printf '%s' "$cur" | cut -d. -f2)
+patch=$(printf '%s' "$cur" | cut -d. -f3)
+[ -n "$major" ] || major=0
+[ -n "$minor" ] || minor=1
+[ -n "$patch" ] || patch=0
+# битый PATCH -> 0
+case "$patch" in *[!0-9]*) patch=0 ;; esac
+
+new="$major.$minor.$((patch + 1))"
+printf '%s\n' "$new" > "$vfile"
+git add "$vfile"
+printf '[gurmix] версия -> v%s\n' "$new"
+exit 0

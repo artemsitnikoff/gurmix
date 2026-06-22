@@ -1,0 +1,28 @@
+#!/bin/sh
+# Префикс сообщения коммита текущей версией: "vX.Y.Z <сообщение>".
+# История git становится человекочитаемым ченджлогом (как в glafira).
+# $1 — файл сообщения; $2 — источник (message|template|merge|squash|commit).
+
+msg_file="$1"
+src="$2"
+
+# merge/squash/amend не префиксуем (amend сохраняет старый префикс).
+case "$src" in
+  merge|squash|commit) exit 0 ;;
+esac
+
+repo_root=$(git rev-parse --show-toplevel) || exit 0
+vfile="$repo_root/VERSION"
+[ -f "$vfile" ] || exit 0
+ver=$(tr -d ' \t\r\n' < "$vfile")
+[ -n "$ver" ] || exit 0
+
+# Уже начинается с vX...  — не дублируем.
+first_line=$(head -n1 "$msg_file" 2>/dev/null)
+case "$first_line" in
+  v[0-9]*) exit 0 ;;
+esac
+
+tmp="$msg_file.gurmix.tmp"
+{ printf 'v%s ' "$ver"; cat "$msg_file"; } > "$tmp" && mv "$tmp" "$msg_file"
+exit 0

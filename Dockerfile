@@ -5,6 +5,8 @@ WORKDIR /build
 COPY frontend/package*.json ./
 RUN npm install
 COPY frontend/ ./
+# VERSION (корень репо) нужен vite для подстановки __APP_VERSION__ (../VERSION).
+COPY VERSION /VERSION
 RUN npm run build
 # -> /build/dist
 
@@ -27,6 +29,9 @@ RUN pip install --no-cache-dir -r /app/backend/requirements.txt
 
 # Код бэкенда.
 COPY backend/ /app/backend/
+
+# Версия (единый источник истины) — читается бэкендом в рантайме (app/core/version.py).
+COPY VERSION /app/VERSION
 
 # Собранный SPA из stage 1. main.py отдаёт его из <repo>/frontend/dist,
 # что в образе резолвится как /app/frontend/dist.

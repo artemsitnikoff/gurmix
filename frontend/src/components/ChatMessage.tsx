@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { api } from '@/api'
-import { sanitizeAnswer } from '@/utils/sanitizeHtml'
+import { renderAnswer } from '@/utils/sanitizeHtml'
 import { useToast } from '@/components/Toast'
 import type { ChatMessageModel } from '@/types'
 import './ChatMessage.css'
@@ -23,7 +23,7 @@ const PHASE_LABELS: Record<string, string> = {
 export function ChatMessage({ message }: Props) {
   const toast = useToast()
   const isUser = message.role === 'user'
-  const html = useMemo(() => sanitizeAnswer(message.content || ''), [message.content])
+  const html = useMemo(() => renderAnswer(message.content || ''), [message.content])
   const meta = message.meta || null
 
   const [feedback, setFeedback] = useState<'good' | 'bad' | null>(message.feedback ?? null)

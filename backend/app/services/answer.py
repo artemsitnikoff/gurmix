@@ -5,20 +5,20 @@ This is a thin orchestration layer:
 
   - module_id → Module.full_system_prompt from the registry
   - assemble prompt (system + ~6 turns of history + question)
-  - call Claude CLI (llm mode, modules 6 & 7)
-  - module 8 (mode='db') answers from the distributors table, no LLM domsel
+  - call Claude CLI (llm mode — активные модули 6, 7, 8 в демо-режиме)
+  - module mode='db' answers from the distributors table (дремлющая ветка:
+    активируется, когда у модуля выставлен mode=db и в базе есть контакты)
 
-RAG corpus подмешивание — заглушка (фаза 2): сейчас llm-режим без RAG для
-модулей 6, 7. CPU/blocking work runs in a worker thread (the SSE route calls
-`answer_with_meta` via asyncio.to_thread).
+Демо-режим (фаза 1): активные модули отвечают напрямую промптом к Opus, без
+RAG-корпуса (подмешивание — фаза 2). Ответ модели — Markdown; бэкенд отдаёт его
+как есть (`answer_html`), фронт рендерит и санитизирует (marked + DOMPurify).
+CPU/blocking work runs in a worker thread (SSE route → asyncio.to_thread).
 """
 from __future__ import annotations
 
-import html
 import logging
-import re
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Callable
 
 from sqlalchemy import select
@@ -70,23 +70,6 @@ class AnswerMeta:
         }
 
 
-@dataclass
-class _Unused:
-    _f: int = field(default=0, repr=False)
-
-
-def _to_html(text: str) -> str:
-    """Минимальный санитайзер: экранируем, затем переносы строк -> <br>.
-
-    Фронт всё равно прогоняет через свой allowlist-санитайзер; здесь только
-    безопасное экранирование и базовая разметка абзацев.
-    """
-    escaped = html.escape(text)
-    escaped = re.sub(r"\n{2,}", "<br><br>", escaped)
-    escaped = escaped.replace("\n", "<br>")
-    return escaped
-
-
 def _build_prompt(system_prompt: str, message: str, history: list[dict]) -> str:
     """Assemble the full text prompt for the CLI (system + history + question)."""
     parts: list[str] = [system_prompt, ""]
@@ -103,7 +86,7 @@ def _build_prompt(system_prompt: str, message: str, history: list[dict]) -> str:
         parts.append("")
     parts.append(f"Вопрос пользователя: {message}")
     parts.append("")
-    parts.append("Ответь по делу, только на основе переданного контекста.")
+    parts.append("Дай развёрнутый экспертный ответ по делу, оформи его в Markdown.")
     return "\n".join(parts)
 
 
@@ -125,21 +108,21 @@ def _answer_db(db: Session, message: str, meta: AnswerMeta) -> str:
     meta.chunks_used = len(matched)
 
     if not matched:
-        return _to_html(_NO_DISTRIBUTOR_TEXT)
+        return _NO_DISTRIBUTOR_TEXT
 
-    lines = ["Подтверждённые контакты из базы:"]
+    lines = ["**Подтверждённые контакты из базы:**", ""]
     for d in matched:
-        bits = [f"• {d.name} ({d.region})"]
+        bits = [f"- **{d.name}** ({d.region})"]
         if d.phone:
-            bits.append(f"тел.: {d.phone}")
+            bits.append(f"  тел.: {d.phone}")
         if d.email:
-            bits.append(f"email: {d.email}")
+            bits.append(f"  email: {d.email}")
         if d.address:
-            bits.append(f"адрес: {d.address}")
+            bits.append(f"  адрес: {d.address}")
         if d.note:
-            bits.append(d.note)
+            bits.append(f"  {d.note}")
         lines.append("\n".join(bits))
-    return _to_html("\n\n".join(lines))
+    return "\n".join(lines)
 
 
 def answer_with_meta(
@@ -169,7 +152,7 @@ def answer_with_meta(
     if module is None:
         meta.query_type = "ERROR"
         meta.latency_ms = int((time.monotonic() - t_start) * 1000)
-        return _to_html(f"Неизвестный модуль: {module_id}"), meta
+        return f"Неизвестный модуль: {module_id}", meta
 
     # ── Phase 1: intent (заглушка — фаза вычисляется тривиально) ──────────
     phase("intent")
@@ -185,7 +168,7 @@ def answer_with_meta(
         phase("answer")
         meta.latency_ms = int((time.monotonic() - t_start) * 1000)
         return answer_html, meta
-    # llm modes (6, 7): RAG corpus not wired yet — фаза 2.
+    # llm modes (6, 7, 8): RAG corpus not wired yet — фаза 2.
     meta.t_retrieval_ms = int((time.monotonic() - t0) * 1000)
 
     # ── Phase 3: answer (Claude CLI) ──────────────────────────────────────
@@ -194,14 +177,13 @@ def answer_with_meta(
     prompt = _build_prompt(module.full_system_prompt, message, history)
     meta.t_answer_model = settings.claude_model
     try:
-        raw = call_cli(prompt, model=settings.claude_model)
-        answer_html = _to_html(raw)
+        answer_html = call_cli(prompt, model=settings.claude_model)
     except ClaudeCLIError as e:
         logger.error("[answer] Claude CLI failed for module=%s: %s", module_id, e)
         meta.query_type = "ERROR"
         meta.t_answer_ms = int((time.monotonic() - t0) * 1000)
         meta.latency_ms = int((time.monotonic() - t_start) * 1000)
-        return _to_html(_FALLBACK_TEXT), meta
+        return _FALLBACK_TEXT, meta
 
     meta.t_answer_ms = int((time.monotonic() - t0) * 1000)
     meta.latency_ms = int((time.monotonic() - t_start) * 1000)

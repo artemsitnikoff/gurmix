@@ -1,4 +1,5 @@
 import { NavLink } from 'react-router-dom'
+import { APP_VERSION } from '@/version'
 import './AppSidebar.css'
 
 type NavEntry = { to: string; icon: string; label: string; end?: boolean }
@@ -25,7 +26,7 @@ export function AppSidebar() {
         </div>
         <div className="brand-name">
           Нейро-шеф Гурмикс
-          <span className="brand-version">v0.1</span>
+          <span className="brand-version">v{APP_VERSION}</span>
         </div>
       </div>
 

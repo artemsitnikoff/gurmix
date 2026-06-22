@@ -17,6 +17,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.core.config import settings
 from app.core.logging import setup_logging
+from app.core.version import APP_VERSION
 
 logger = logging.getLogger(__name__)
 
@@ -47,7 +48,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Нейро-шеф Гурмикс API",
     description="Веб-чат-бот с 8 модулями-экспертами для компании «Гурмикс».",
-    version="1.0.0",
+    version=APP_VERSION,
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan,
@@ -73,7 +74,12 @@ app.include_router(admin_router.router, prefix="/api/v1")
 
 @app.get("/health")
 async def health() -> dict:
-    return {"status": "healthy"}
+    return {"status": "healthy", "version": APP_VERSION}
+
+
+@app.get("/api/v1/version")
+async def app_version() -> dict:
+    return {"name": "Нейро-шеф Гурмикс", "version": APP_VERSION}
 
 
 # ── Serve built SPA from ../frontend/dist if present ─────────────────────────

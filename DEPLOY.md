@@ -76,6 +76,31 @@ cd ~/gurmix && git pull && docker compose up -d --build
 Если `requirements.txt` и `frontend/package.json` не менялись — пересборка быстрая
 (слои из кэша).
 
+## Автодеплой (CI: push в `main` → сборка на VPS)
+Workflow `.github/workflows/deploy.yml` (GitHub Actions, механика как в glafira): на
+каждый push в `main` заходит по SSH на сервер, делает `git pull --ff-only` и
+пересобирает `web` (`docker compose up -d --build web`), затем health-check и
+`docker image prune`. Идемпотентен: если новых коммитов нет — выходит без действий.
+
+**Один раз настроить:**
+
+1. **Секреты репозитория** (GitHub → Settings → Secrets and variables → Actions → New repository secret):
+   - `SSH_HOST` — IP/домен VPS
+   - `SSH_USER` — пользователь SSH
+   - `SSH_PRIVATE_KEY` — приватный ключ (его публичная часть — в `~/.ssh/authorized_keys` этого юзера на VPS)
+   - `DEPLOY_PATH` — путь к репо на сервере (необязательно; дефолт `/var/www/gurmix`)
+2. **На сервере** репозиторий склонирован в `DEPLOY_PATH`, с настроенными `.env`,
+   `base/`, симлинком `data/` (см. «Первоначальная установка»), и `origin` на тот же
+   GitHub-репо (чтобы `git pull` работал). Docker + Compose установлены.
+3. **Деплой = `git push origin main`.** Прогресс — во вкладке **Actions**; ручной
+   прогон — кнопка **Run workflow** (событие `workflow_dispatch`).
+
+> ⚠️ Файлы `.github/workflows/*.yml` GitHub принимает только от токена со scope
+> `workflow`. Если push воркфлоу отклонён — добавь/правь его через веб-интерфейс
+> GitHub (Add file / редактор); остальной код пушится обычным токеном. Первичная
+> установка на сервере (клон, `.env`, симлинк `data/`, первый `up -d --build`)
+> делается руками один раз — CI только обновляет.
+
 ## Смена порта (если выбранный занят)
 Порт задаётся ОДНОЙ переменной — `APP_PORT` в `.env` (и host-, и container-порт):
 ```bash
