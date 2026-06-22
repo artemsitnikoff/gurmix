@@ -1,0 +1,59 @@
+  name: Deploy to VPS
+  
+  # Релиз = push в main (или ручной запуск из вкладки Actions).
+  # Заходит по SSH на VPS, тянет свежий код и пересобирает единственный web-сервис.
+  on:
+    push:
+      branches: [main]
+    workflow_dispatch:
+    
+  jobs:
+    deploy:
+      runs-on: ubuntu-latest
+      steps:
+        - name: SSH deploy
+          uses: appleboy/ssh-action@v1.0.3
+          with: 
+            host: ${{ secrets.SSH_HOST }}
+            username: ${{ secrets.SSH_USER }}
+            key: ${{ secrets.SSH_PRIVATE_KEY }}
+            script_stop: true
+            command_timeout: 30m
+            script: |
+              set -e
+  
+              # Путь к репозиторию на сервере (секрет DEPLOY_PATH; дефолт /var/www/gurmix).
+              DEPLOY_PATH="${{ secrets.DEPLOY_PATH }}"
+              DEPLOY_PATH="${DEPLOY_PATH:-/var/www/gurmix}"
+              cd "$DEPLOY_PATH"
+              
+              git fetch origin main --quiet
+              LOCAL=$(git rev-parse HEAD)
+              REMOTE=$(git rev-parse origin/main)
+              
+              if [ "$LOCAL" = "$REMOTE" ]; then
+                echo "No new commits — nothing to deploy."
+                exit 0
+              fi
+              
+              echo "[$(date -Iseconds)] new commits: $LOCAL -> $REMOTE"
+              git pull origin main --ff-only
+              
+              # Один web-сервис (FastAPI + собранный SPA + Claude CLI): пересобираем образ.
+              # Сборка фронта зашивает VERSION (vite define), бэк читает VERSION в рантайме.
+              docker compose -f docker-compose.yml up -d --build web
+              
+              # Health-check (порт берём из .env, дефолт 8420) — не валит деплой, только лог.
+              APP_PORT=$(grep -E '^APP_PORT=' .env 2>/dev/null | head -n1 | cut -d= -f2 | tr -d '[:space:]')
+              APP_PORT="${APP_PORT:-8420}"
+              sleep 6
+              if curl -fsS "http://localhost:${APP_PORT}/health" >/dev/null 2>&1; then
+                echo "health OK on :${APP_PORT}"
+              else
+                echo "WARN: health-check на :${APP_PORT} не прошёл — смотри 'docker compose logs -f web'"
+              fi
+              
+              # Чистим повисшие образы от пересборок, чтобы не забивать диск.
+              docker image prune -f >/dev/null 2>&1 || true
+              echo "[$(date -Iseconds)] deployed: $REMOTE"
+
