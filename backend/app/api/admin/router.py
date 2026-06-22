@@ -9,10 +9,10 @@
 """
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import desc, func, select
+from sqlalchemy import and_, desc, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.api.admin.deps import require_admin
@@ -176,6 +176,26 @@ async def admin_delete_distributor(
 
 
 # ── Journal (порт query_logs) ────────────────────────────────────────────────
+def _journal_item(r: QueryLog) -> dict:
+    return {
+        "id": r.id,
+        "ts": _iso(r.ts),
+        "session_id": r.session_id,
+        "module_id": r.module_id,
+        "question": r.question,
+        "answer": r.answer,
+        "query_type": r.query_type,
+        "latency_ms": r.latency_ms,
+        "t_answer_model": r.t_answer_model,
+        "top_score": r.top_score,
+        "chunks_used": r.chunks_used,
+        "feedback": r.feedback,
+        "feedback_note": r.feedback_note,
+        "usefulness_score": r.usefulness_score,
+        "usefulness_verdict": r.usefulness_verdict,
+    }
+
+
 @router.get("/journal")
 async def admin_journal(
     module_id: str | None = Query(None),
@@ -201,22 +221,37 @@ async def admin_journal(
         q.order_by(desc(QueryLog.ts)).offset(offset).limit(per_page)
     ).scalars().all()
 
-    items = [
-        {
-            "id": r.id,
-            "ts": _iso(r.ts),
-            "session_id": r.session_id,
-            "module_id": r.module_id,
-            "question": r.question,
-            "answer": r.answer,
-            "query_type": r.query_type,
-            "latency_ms": r.latency_ms,
-            "t_answer_model": r.t_answer_model,
-            "top_score": r.top_score,
-            "chunks_used": r.chunks_used,
-            "feedback": r.feedback,
-            "feedback_note": r.feedback_note,
-        }
-        for r in rows
-    ]
+    items = [_journal_item(r) for r in rows]
     return {"items": items, "total": total, "page": page, "per_page": per_page}
+
+
+@router.get("/journal/{log_id}/context")
+async def admin_journal_context(
+    log_id: int,
+    limit: int = Query(8, ge=1, le=30),
+    window_minutes: int = Query(180, ge=1, le=1440),
+    db: Session = Depends(get_db),
+) -> dict:
+    """Предыдущие ходы того же диалога (по session_id + окно времени) — нить чата."""
+    target = db.get(QueryLog, log_id)
+    if target is None:
+        raise HTTPException(status_code=404, detail="Log entry not found")
+    if not target.session_id:
+        return {"items": []}
+    cutoff = target.ts - timedelta(minutes=window_minutes)
+    rows = db.execute(
+        select(QueryLog)
+        .where(QueryLog.session_id == target.session_id)
+        .where(QueryLog.ts >= cutoff)
+        # Композитная граница (ts, id): не теряем ходы той же секунды и
+        # детерминированно сортируем при равных ts.
+        .where(
+            or_(
+                QueryLog.ts < target.ts,
+                and_(QueryLog.ts == target.ts, QueryLog.id < target.id),
+            )
+        )
+        .order_by(desc(QueryLog.ts), desc(QueryLog.id))
+        .limit(limit)
+    ).scalars().all()
+    return {"items": [_journal_item(r) for r in reversed(rows)]}

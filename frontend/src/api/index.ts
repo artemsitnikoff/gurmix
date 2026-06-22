@@ -76,6 +76,8 @@ export const api = {
 
   adminGetJournal: (params: Record<string, unknown> = {}) =>
     client.get('/admin/journal', { params }),
+  adminGetJournalContext: (id: number) =>
+    client.get(`/admin/journal/${id}/context`),
 }
 
 // ── Streaming chat ────────────────────────────────────────────────────

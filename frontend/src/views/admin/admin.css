@@ -127,3 +127,106 @@
   color: var(--fg-1);
   margin-top: var(--sp-2);
 }
+
+/* ── Journal: judge pill, detail panel, dialog thread ─────────────────────── */
+.journal-row {
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease-out);
+}
+.journal-row:hover {
+  background: var(--bg-hover);
+}
+.journal-row.active {
+  background: var(--bg-hover);
+}
+
+.u-pill {
+  display: inline-block;
+  min-width: 30px;
+  text-align: center;
+  padding: 1px 8px;
+  border-radius: var(--rad-full);
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  font-variant-numeric: tabular-nums;
+}
+.u-pill.u-green {
+  background: #e6f4ea;
+  color: #137333;
+}
+.u-pill.u-yellow {
+  background: #fef7e0;
+  color: #9a6700;
+}
+.u-pill.u-red {
+  background: #fce8e6;
+  color: #c5221f;
+}
+.u-pill.u-pending {
+  background: var(--bg-hover);
+  color: var(--fg-3);
+}
+
+.journal-detail .journal-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--sp-3);
+}
+.journal-section {
+  margin-bottom: var(--sp-4);
+}
+.journal-label {
+  font-size: var(--fs-12);
+  font-weight: var(--fw-semibold);
+  color: var(--fg-2);
+  text-transform: uppercase;
+  letter-spacing: var(--ls-wide);
+  margin-bottom: var(--sp-2);
+}
+.journal-q {
+  font-size: var(--fs-14);
+  color: var(--fg-1);
+  white-space: pre-wrap;
+}
+.journal-a {
+  font-size: var(--fs-14);
+  color: var(--fg-1);
+  line-height: 1.55;
+}
+.journal-a :first-child {
+  margin-top: 0;
+}
+.journal-verdict {
+  color: var(--fg-2);
+  font-size: var(--fs-13);
+}
+
+.dlg-turn {
+  border-left: 2px solid var(--border-1);
+  padding: var(--sp-1) 0 var(--sp-2) var(--sp-3);
+  margin-bottom: var(--sp-2);
+}
+.dlg-q {
+  font-weight: var(--fw-medium);
+  color: var(--fg-1);
+  margin-bottom: var(--sp-1);
+}
+.dlg-a {
+  color: var(--fg-2);
+  font-size: var(--fs-13);
+  line-height: 1.5;
+}
+
+.journal-pager {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+.journal-pager-info {
+  font-size: var(--fs-13);
+  color: var(--fg-2);
+  font-variant-numeric: tabular-nums;
+}

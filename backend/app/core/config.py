@@ -32,6 +32,9 @@ class Settings(BaseSettings):
     # Intent extraction / reformulation. Default = Opus 4.8 for consistency;
     # set to Haiku (claude-haiku-4-5) for lower latency on the intent phase.
     claude_intent_model: str = Field(default="claude-opus-4-8")
+    # LLM-as-judge (асессор полезности ответа). Бежит асинхронно в фоне после
+    # ответа — Haiku ради скорости и низкой нагрузки на Pro-аккаунт.
+    claude_judge_model: str = Field(default="claude-haiku-4-5-20251001")
     # Path to the `claude` CLI binary (already logged in to the Pro account).
     claude_cli_path: str = Field(default="claude")
     # Cross-process upper bound on concurrent Claude CLI subprocesses — a

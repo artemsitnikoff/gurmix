@@ -16,6 +16,7 @@ import logging
 from fastapi import APIRouter, Query, Request
 from fastapi.responses import StreamingResponse
 
+from app.core.config import settings
 from app.core.database import SessionLocal
 from app.limits import store as quota_store
 from app.schemas import ChatFeedbackRequest, ChatRequest
@@ -41,6 +42,65 @@ def _client_ip(request: Request) -> str:
     if fwd:
         return fwd.split(",")[0].strip()
     return request.client.host if request.client else ""
+
+
+# ── LLM-as-judge (асессор полезности) — fire-and-forget после ответа ──────────
+# Судья (Haiku) оценивает полезность ответа в фоне и пишет usefulness_* в
+# query_logs. Планируется ДО финального yield (чтобы задача создалась даже при
+# мгновенном дисконнекте клиента); strong-ref в _judge_tasks переживает отмену
+# генератора. Параллелизм судей < размера слот-пула — оставляем слот живому чату.
+_judge_tasks: set[asyncio.Task] = set()
+_judge_sem: asyncio.Semaphore | None = None
+
+
+def _get_judge_sem() -> asyncio.Semaphore:
+    global _judge_sem
+    if _judge_sem is None:
+        cap = max(1, min(2, settings.claude_cli_max_concurrent - 1))
+        _judge_sem = asyncio.Semaphore(cap)
+    return _judge_sem
+
+
+def _judge_and_persist(log_id: int, question: str, answer: str) -> None:
+    """Синхронно: оценить ответ и записать usefulness_* (в worker-потоке)."""
+    from sqlalchemy import update
+
+    from app.api.journal_models import QueryLog
+    from app.services.judge import judge_answer
+
+    verdict = judge_answer(question, answer)
+    if not verdict:
+        return
+    # Таргетный UPDATE только колонок судьи — не затираем пользовательский feedback.
+    with SessionLocal() as s:
+        s.execute(
+            update(QueryLog)
+            .where(QueryLog.id == log_id)
+            .values(
+                usefulness_score=verdict["score"],
+                usefulness_verdict=verdict["verdict"],
+            )
+        )
+        s.commit()
+
+
+async def _judge_in_background(log_id: int, question: str, answer: str) -> None:
+    async with _get_judge_sem():
+        try:
+            # И CLI-вызов, и запись в БД — в worker-потоке, не блокируя event loop.
+            await asyncio.to_thread(_judge_and_persist, log_id, question, answer)
+        except Exception as e:  # noqa: BLE001 — судья best-effort, не критичен
+            logger.debug("[judge] failed for log_id=%s: %s", log_id, e)
+
+
+def _spawn_judge(log_id: int, question: str, answer: str) -> None:
+    """Оценить ответ судьёй в фоне — не блокирует выдачу ответа пользователю."""
+    try:
+        task = asyncio.create_task(_judge_in_background(log_id, question, answer))
+    except RuntimeError:
+        return  # нет running loop — пропускаем
+    _judge_tasks.add(task)
+    task.add_done_callback(_judge_tasks.discard)
 
 
 @router.post("/chat/stream")
@@ -122,6 +182,12 @@ async def chat_stream(req: ChatRequest, request: Request) -> StreamingResponse:
             except Exception as e:  # noqa: BLE001
                 logger.error("[chat] persist/increment failed: %s", e, exc_info=True)
                 s.rollback()
+
+        # Планируем судью в фоне ДО финального yield — задача создаётся даже если
+        # клиент отключится сразу после 'done' (judge_answer + запись идут в
+        # worker-потоке и переживают завершение SSE-ответа).
+        if log_id and answer_html and meta.query_type != "ERROR":
+            _spawn_judge(log_id, message, answer_html)
 
         yield _sse({
             "type": "done",

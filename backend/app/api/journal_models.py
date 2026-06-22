@@ -10,7 +10,7 @@ from sqlalchemy import DateTime, Float, Integer, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base, engine
-from app.core.migrations import register_schema_probe
+from app.core.migrations import register_schema_probe, safe_alter
 
 logger = logging.getLogger(__name__)
 
@@ -32,11 +32,18 @@ class QueryLog(Base):
     # Feedback (set via POST /chat/feedback).
     feedback: Mapped[str | None] = mapped_column(String, index=True, nullable=True)
     feedback_note: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # LLM-as-judge usefulness (асинхронно после ответа). NULL = ещё не оценено.
+    usefulness_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    usefulness_verdict: Mapped[str | None] = mapped_column(Text, nullable=True)
 
 
 def _init_schema() -> bool:
     try:
         Base.metadata.create_all(bind=engine, tables=[QueryLog.__table__])
+        # Идемпотентные ALTER для legacy-БД (созданных до появления колонок судьи).
+        with engine.begin() as conn:
+            safe_alter(conn, "ALTER TABLE query_logs ADD COLUMN usefulness_score INTEGER")
+            safe_alter(conn, "ALTER TABLE query_logs ADD COLUMN usefulness_verdict TEXT")
         return True
     except Exception as e:  # noqa: BLE001
         logger.error("query_logs schema init failed: %s", e)
