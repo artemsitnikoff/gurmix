@@ -16,9 +16,11 @@
   слотов) + `claude_token.py` (авто-рефреш `data/.claude_token.json`). Модель по
   умолчанию — **Opus 4.8** (`claude-opus-4-8`) на интент и ответ; **LLM-судья**
   (оценка полезности ответа в фоне) — **Haiku** (`claude_judge_model`).
-- **RAG:** база знаний (SQLite `base/gurmix.db`); гибрид BM25+dense на E5 — **фаза 2**
-  (порт из teplodar `src/rag`). Сейчас активные модули отвечают в режиме `llm` без
-  корпуса, в демо-режиме `expert_mode` (экспертная преамбула вместо GUARDRAIL).
+- **RAG:** модуль 1 «Продуктовый эксперт» работает на **лёгком BM25-ретриве**
+  (`app/rag/index.py`, чистый Python, без torch) поверх каталога ассортимента
+  (`app/rag/assortment.json` — 161 товар, выкачан из Teamly `scripts/crawl_teamly.py`).
+  Полный E5-гибрид (порт teplodar `src/rag`) — фаза 2. Демо-модули 6/7/8 отвечают в
+  `llm` без корпуса (`expert_mode`, экспертная преамбула вместо GUARDRAIL).
 - **Ответы — Markdown:** модель возвращает Markdown, бэк отдаёт его как есть в
   `answer_html`, фронт рендерит `marked`(GFM)+`DOMPurify` (`utils/sanitizeHtml.ts`).
 
@@ -73,8 +75,9 @@ backend/app/
              logging, migrations (schema probe)
   modules/   registry.py — 8 модулей с персонами + GUARDRAIL
   limits/    models.py (usage_counters), store.py (квоты session+IP, day/week/month)
-  services/  answer.py — роутинг module_id -> промпт -> Claude CLI -> (md, meta);
+  services/  answer.py — роутинг module_id -> промпт (+RAG-контекст) -> Claude CLI;
              judge.py — LLM-судья полезности (Haiku, в фоне)
+  rag/       index.py — BM25-ретрив + assortment.json (каталог Гурмикс из Teamly)
   schemas/   pydantic (ChatRequest, QuotaState, Distributor…)
   api/       modules.py, chat.py (SSE + фоновый судья), admin/ (basic-auth: modules,
              quota, documents, chunks, pipeline, distributors CRUD, journal + context)
@@ -116,6 +119,9 @@ docs/CONTRACT.md   — контракт API/SSE/дизайна (источник
   деталь + нить диалога (`/admin/journal/{id}/context`), пагинация.
 - **Версионность + CI:** `VERSION` + git-хуки авто-бампа; push в `main` → автодеплой
   на VPS (`.github/workflows/deploy.yml`). См. разделы «Версионность», «Деплой».
+- **Бот по ассортименту (модуль 1, RAG):** каталог Гурмикс выкачан из Teamly
+  (161 товар, 12 категорий) → `app/rag/assortment.json`; BM25-ретрив `app/rag/`
+  подмешивает найденное в промпт; модуль 1 «Продуктовый эксперт» активирован.
 
 **Фаза 2 (TODO):**
 - Порт RAG-ингестии (E5 + индекс) в админку; подмешивание корпуса в `answer.py` для
