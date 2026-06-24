@@ -27,12 +27,14 @@ from sqlalchemy.orm import Session
 from app.core.claude_cli import ClaudeCLIError, call_cli
 from app.core.config import settings
 from app.modules.registry import MODULES_BY_ID, ModuleMode
+from app.rag import index as rag_index
 
 logger = logging.getLogger(__name__)
 
 PhaseCallback = Callable[[str], None]
 
 _HISTORY_TURNS = 6  # ~6 ходов истории
+_RAG_TOP_K = 10  # сколько документов ассортимента подмешивать в контекст
 
 _NO_DISTRIBUTOR_TEXT = (
     "Подтверждённых контактов в базе нет — оставьте заявку, "
@@ -87,6 +89,38 @@ def _build_prompt(system_prompt: str, message: str, history: list[dict]) -> str:
     parts.append(f"Вопрос пользователя: {message}")
     parts.append("")
     parts.append("Дай развёрнутый экспертный ответ по делу, оформи его в Markdown.")
+    return "\n".join(parts)
+
+
+def _build_rag_prompt(
+    system_prompt: str, message: str, history: list[dict], context: str
+) -> str:
+    """Промпт для RAG-модулей: системный + контекст базы знаний + история + вопрос."""
+    parts: list[str] = [
+        system_prompt,
+        "",
+        "Контекст из базы знаний (каталог ассортимента Гурмикс):",
+        context,
+        "",
+    ]
+    recent = history[-_HISTORY_TURNS:] if history else []
+    if recent:
+        parts.append("Контекст диалога:")
+        for turn in recent:
+            role = turn.get("role", "user")
+            content = (turn.get("content") or "").strip()
+            if not content:
+                continue
+            label = "Пользователь" if role == "user" else "Ассистент"
+            parts.append(f"{label}: {content}")
+        parts.append("")
+    parts.append(f"Вопрос пользователя: {message}")
+    parts.append("")
+    parts.append(
+        "Отвечай СТРОГО на основе контекста выше. Если нужных данных в контексте "
+        "нет — честно скажи, что в базе этого нет, и предложи оставить заявку "
+        "менеджеру. Не выдумывай товары, составы, цены. Оформи ответ в Markdown."
+    )
     return "\n".join(parts)
 
 
@@ -159,7 +193,7 @@ def answer_with_meta(
     t0 = time.monotonic()
     meta.t_intent_ms = int((time.monotonic() - t0) * 1000)
 
-    # ── Phase 2: retrieval (RAG-подмешивание — заглушка, фаза 2) ──────────
+    # ── Phase 2: retrieval ────────────────────────────────────────────────
     phase("retrieval")
     t0 = time.monotonic()
     if module.mode == ModuleMode.DB:
@@ -168,13 +202,30 @@ def answer_with_meta(
         phase("answer")
         meta.latency_ms = int((time.monotonic() - t_start) * 1000)
         return answer_html, meta
-    # llm modes (6, 7, 8): RAG corpus not wired yet — фаза 2.
+
+    # RAG-модули (напр. модуль 1 «Продуктовый эксперт»): BM25-ретрив по каталогу
+    # ассортимента, подмешиваем найденное в контекст промпта.
+    rag_context: str | None = None
+    if module.mode == ModuleMode.RAG:
+        try:
+            hits = rag_index.retrieve(message, k=_RAG_TOP_K)
+        except Exception as e:  # noqa: BLE001 — RAG не должен ронять ответ
+            logger.warning("[rag] retrieve failed: %s", e)
+            hits = []
+        meta.query_type = "rag"
+        meta.chunks_used = len(hits)
+        if hits:
+            meta.top_score = hits[0][1]
+            rag_context = "\n".join(f"- {d['text']}" for d, _ in hits)
     meta.t_retrieval_ms = int((time.monotonic() - t0) * 1000)
 
     # ── Phase 3: answer (Claude CLI) ──────────────────────────────────────
     phase("answer")
     t0 = time.monotonic()
-    prompt = _build_prompt(module.full_system_prompt, message, history)
+    if rag_context is not None:
+        prompt = _build_rag_prompt(module.full_system_prompt, message, history, rag_context)
+    else:
+        prompt = _build_prompt(module.full_system_prompt, message, history)
     meta.t_answer_model = settings.claude_model
     try:
         answer_html = call_cli(prompt, model=settings.claude_model)

@@ -40,6 +40,15 @@ async def lifespan(app: FastAPI):
 
     create_tables()
     assert_schema_ready(expected=["usage_counters", "distributors", "query_logs"])
+
+    # Прогреть RAG-индекс ассортимента (модуль 1). Lazy-фолбэк — не валим старт.
+    try:
+        from app.rag import index as rag_index
+
+        logger.info("RAG ассортимент: %d документов", rag_index.warm())
+    except Exception:  # noqa: BLE001
+        logger.warning("RAG warm skipped", exc_info=True)
+
     logger.info("Гурмикс backend ready.")
 
     yield
